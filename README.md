@@ -148,6 +148,8 @@ Switching between productivity tools shouldn't mean losing your notes or spendin
 
 This tool ensures your notes arrive in Obsidian clean, organized, and ready to use — so you can focus on your work instead of fighting with formatting.
 
+For a detailed side-by-side comparison with Obsidian's built-in HTML importer, see [the comparison document](./docs/zoho-importer-comparison.md).
+
 ## License
 
 [O'Saasy License](./LICENSE) — MIT-like, with a restriction against competing SaaS use.
