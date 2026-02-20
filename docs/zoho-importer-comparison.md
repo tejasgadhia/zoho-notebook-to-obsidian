@@ -10,7 +10,7 @@ When migrating between them, Obsidian's built-in [Importer plugin](https://help.
 
 The same Zoho Notebook HTML export (31 notes across 6 notebooks, all 8 card types) was imported through both paths:
 
-- **Obsidian Importer**: Built-in community plugin, "HTML files" import mode
+- **Obsidian Importer**: Community plugin, "HTML files" import mode (Obsidian v1.11.7)
 - **zoho-notebook-to-obsidian**: v1.0.0, run as `npx zoho-notebook-to-obsidian export.zip ./vault`
 
 ## Results at a Glance
@@ -21,9 +21,9 @@ The same Zoho Notebook HTML export (31 notes across 6 notebooks, all 8 card type
 | **Filenames** | Zoho internal IDs (`gsgjk4d52d...`) | Note titles (`Parts List.md`) |
 | **YAML frontmatter** | None | Title, notebook, dates, tags, aliases |
 | **Created/modified dates** | Not preserved | Preserved from Zoho metadata |
-| **Checklists** | Plain text or raw HTML | Interactive `- [ ]` / `- [x]` tasks |
-| **Image attachments** | Broken references | Copied to `attachments/` + `![[wikilink]]` |
-| **File attachments** | Not handled | Copied to `attachments/` + linked |
+| **Checklists** | Plain text (checkboxes stripped) | Interactive `- [ ]` / `- [x]` tasks |
+| **Image attachments** | Copied + standard markdown | Copied to `attachments/` + `![[wikilink]]` |
+| **File attachments** | Broken link to missing zip | Copied to `attachments/` + linked |
 | **Internal note links** | Dead `zohonotebook://` URLs | Resolved `[[wikilinks]]` |
 | **Nested lists** | May lose indentation depth | Correct nesting preserved |
 | **Missing content alerts** | None | Warning added for lost video/audio |
@@ -55,7 +55,6 @@ vault/
     └── document.zip
 ```
 
-<!-- Screenshot: comparison/01-folder-structure-native.png vs comparison/01-folder-structure-tool.png -->
 
 ### 2. Metadata & Dates
 
@@ -82,13 +81,12 @@ source: zoho-notebook
 
 The `aliases` field means `[[IPMI]]` wikilinks resolve correctly. The `zoho-notebook` tag lets you filter all imported notes. Dates use `YYYY-MM-DD` format, which Obsidian recognizes as date type in Properties view.
 
-<!-- Screenshot: comparison/02-metadata-native.png vs comparison/02-metadata-tool.png -->
 
 ### 3. Checklists
 
 Zoho Notebook's checklist cards use `<input type="checkbox">` elements with `checked="true"` for completed items.
 
-**Obsidian Importer**: Checkboxes may render as plain text or raw HTML, losing their interactive state.
+**Obsidian Importer**: Checkboxes are stripped entirely — you get plain text lines with no indication that the note was a checklist.
 
 **zoho-notebook-to-obsidian**: Converts to Obsidian's native task syntax:
 
@@ -101,13 +99,12 @@ Zoho Notebook's checklist cards use `<input type="checkbox">` elements with `che
 
 These are fully interactive in Obsidian — click to toggle.
 
-<!-- Screenshot: comparison/03-checklist-native.png vs comparison/03-checklist-tool.png -->
 
 ### 4. Images & Attachments
 
 Zoho's export includes image files alongside the HTML, but references them by internal IDs. File card attachments are wrapped in an extra `.zip` layer.
 
-**Obsidian Importer**: Image references may break since the files aren't automatically copied to the vault's attachment folder. File attachments aren't handled.
+**Obsidian Importer**: Images are copied to an `Attachments/` folder and referenced with standard markdown syntax (`![](path)`), so they display correctly. However, file card attachments (e.g., `.xlsx` wrapped in `.zip`) produce a broken link — the importer doesn't copy non-image files.
 
 **zoho-notebook-to-obsidian**: Copies all images and files to `attachments/` and uses Obsidian wikilink embeds:
 
@@ -121,7 +118,6 @@ File cards include descriptive text:
 Attached file: ![[attachments/22bt4b61d3535f02d4783ba75ba1932cbdb8f.zip]]
 ```
 
-<!-- Screenshot: comparison/04-image-native.png vs comparison/04-image-tool.png -->
 
 ### 5. Content Gaps (Video & Audio Cards)
 
@@ -138,7 +134,6 @@ Zoho's export has two data loss issues: video cards export with empty content (t
 
 For audio files, the tool copies the extensionless file and notes the issue. See [ZOHO-EXPORT-ISSUES.md](../ZOHO-EXPORT-ISSUES.md) for the full list of 17 documented export format issues.
 
-<!-- Screenshot: comparison/05-video-native.png vs comparison/05-video-tool.png -->
 
 ### 6. Rich Text & Formatting
 
