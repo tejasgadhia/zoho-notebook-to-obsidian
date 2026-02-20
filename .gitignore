@@ -2,6 +2,7 @@ node_modules/
 output/
 test-output/
 test-output-*/
+_planning/
 *.zip
 60040376304/
 [0-9][0-9][0-9]*/
