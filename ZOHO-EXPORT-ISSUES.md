@@ -1,6 +1,6 @@
 # Zoho Notebook Export Issues
 
-A comprehensive catalog of every problem found in Zoho Notebook's HTML export format, discovered while building the [zoho-to-obsidian](https://github.com/tejasgadhia/zoho-to-obsidian) converter. Documented here so Zoho's engineering team can fix these, and so users migrating from Zoho Notebook know what to expect.
+A comprehensive catalog of every problem found in Zoho Notebook's HTML export format, discovered while building the [zoho-notebook-to-obsidian](https://github.com/tejasgadhia/zoho-notebook-to-obsidian) converter. Documented here so Zoho's engineering team can fix these, and so users migrating from Zoho Notebook know what to expect.
 
 **Export tested:** February 2026, Zoho Notebook web app (HTML export)
 **Notes in export:** 31 notes across 6 notebooks, all 8 card types

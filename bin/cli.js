@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
 
 program
-  .name('zoho-to-obsidian')
+  .name('zoho-notebook-to-obsidian')
   .description('Convert Zoho Notebook exports to Obsidian Markdown')
   .version(version)
   .argument('<input>', 'Path to Zoho export .zip or extracted folder')

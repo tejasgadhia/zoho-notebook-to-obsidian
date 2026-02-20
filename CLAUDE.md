@@ -2,7 +2,7 @@
 
 ## What This Is
 
-CLI tool and npm package that converts Zoho Notebook HTML exports into clean Obsidian Markdown. Handles all 8 Zoho card types (text, checklist, photo, sketch, file, audio, video, internal link). Validated against a real 31-note, 6-notebook export.
+**zoho-notebook-to-obsidian** — CLI tool and npm package that converts Zoho Notebook HTML exports into clean Obsidian Markdown. Handles all 8 Zoho card types (text, checklist, photo, sketch, file, audio, video, internal link). Validated against a real 31-note, 6-notebook export.
 
 ## Architecture
 

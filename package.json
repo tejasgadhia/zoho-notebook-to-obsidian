@@ -1,10 +1,10 @@
 {
-  "name": "zoho-to-obsidian",
+  "name": "zoho-notebook-to-obsidian",
   "version": "1.0.0",
   "description": "Convert Zoho Notebook exports to clean Obsidian Markdown",
   "type": "module",
   "bin": {
-    "zoho-to-obsidian": "./bin/cli.js"
+    "zoho-notebook-to-obsidian": "./bin/cli.js"
   },
   "files": [
     "bin/",
@@ -33,11 +33,11 @@
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tejasgadhia/zoho-to-obsidian.git"
+    "url": "git+https://github.com/tejasgadhia/zoho-notebook-to-obsidian.git"
   },
-  "homepage": "https://github.com/tejasgadhia/zoho-to-obsidian#readme",
+  "homepage": "https://github.com/tejasgadhia/zoho-notebook-to-obsidian#readme",
   "bugs": {
-    "url": "https://github.com/tejasgadhia/zoho-to-obsidian/issues"
+    "url": "https://github.com/tejasgadhia/zoho-notebook-to-obsidian/issues"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

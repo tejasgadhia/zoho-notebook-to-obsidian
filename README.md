@@ -1,4 +1,4 @@
-# zoho-to-obsidian
+# zoho-notebook-to-obsidian
 
 Convert [Zoho Notebook](https://www.zoho.com/notebook/) exports to clean [Obsidian](https://obsidian.md/) Markdown.
 
@@ -7,14 +7,14 @@ Zoho Notebook's export produces single-line HTML files with non-standard markup 
 ## Quick Start
 
 ```bash
-npx zoho-to-obsidian ./Notebook_export.zip ./my-obsidian-vault
+npx zoho-notebook-to-obsidian ./Notebook_export.zip ./my-obsidian-vault
 ```
 
 Or install globally:
 
 ```bash
-npm install -g zoho-to-obsidian
-zoho-to-obsidian ./Notebook_export.zip ./my-obsidian-vault
+npm install -g zoho-notebook-to-obsidian
+zoho-notebook-to-obsidian ./Notebook_export.zip ./my-obsidian-vault
 ```
 
 ## How to Export from Zoho Notebook
@@ -73,7 +73,7 @@ For the full list of 17 documented issues with Zoho's export format, see [ZOHO-E
 ## Options
 
 ```
-Usage: zoho-to-obsidian <input> <output>
+Usage: zoho-notebook-to-obsidian <input> <output>
 
 Arguments:
   input       Path to Zoho export .zip or extracted folder

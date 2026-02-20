@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- CLI tool: `npx zoho-to-obsidian <input> <output>` with `--skip-empty` and `--verbose` flags
+- CLI tool: `npx zoho-notebook-to-obsidian <input> <output>` with `--skip-empty` and `--verbose` flags
 - Support for all 8 Zoho Notebook card types: text, checklist, photo, sketch, file, audio, video, internal link
 - Recursive HTML-to-Markdown conversion handling nested divs, lists, formatting, tables, code blocks, blockquotes, and headings
 - YAML frontmatter with title, notebook, created/modified dates, tags, aliases, and source
@@ -38,4 +38,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note ID format uses `path.basename` for reliable internal link resolution
 - Version read dynamically from `package.json` (no hardcoded values)
 
-[1.0.0]: https://github.com/tejasgadhia/zoho-to-obsidian/releases/tag/v1.0.0
+[1.0.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/releases/tag/v1.0.0
