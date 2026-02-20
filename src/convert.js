@@ -308,8 +308,9 @@ function walkNode(node, $, context, noteIdToTitle) {
   }
 
   // Znote <checkbox> element: text is direct child content
+  // Uses data-znote-checked (renamed from checked in parse-znote.js to survive cheerio normalization)
   if (tag === 'checkbox') {
-    const checked = $el.attr('checked') === 'true';
+    const checked = $el.attr('data-znote-checked') === 'true';
     const labelText = walkChildren(node, $, context, noteIdToTitle).trim();
     return checked ? `- [x] ${labelText}\n` : `- [ ] ${labelText}\n`;
   }

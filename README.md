@@ -19,11 +19,25 @@ zoho-to-obsidian ./Notebook_export.zip ./my-obsidian-vault
 
 ## How to Export from Zoho Notebook
 
+Zoho Notebook offers two export formats. Both are supported:
+
+### Option 1: HTML Export
+
 1. Open [Zoho Notebook](https://notebook.zoho.com/) in your browser
 2. Click the **gear icon** (Settings) in the bottom-left
 3. Select **Migration** > **Export**
 4. Choose **HTML** format
 5. Download the `.zip` file
+
+### Option 2: Znote Export (recommended)
+
+1. Open [Zoho Notebook](https://notebook.zoho.com/) in your browser
+2. Click the **gear icon** (Settings) in the bottom-left
+3. Select **Migration** > **Export**
+4. Choose **Znote** format
+5. Download the `.zip` file
+
+Znote exports preserve richer metadata than HTML: original timezones, explicit card types, and resource dimensions. The tool auto-detects the format.
 
 You can pass either the `.zip` file or the extracted folder to this tool.
 
@@ -54,6 +68,7 @@ For the full list of 17 documented issues with Zoho's export format, see [ZOHO-E
 | File Card | Copied to `attachments/`, linked in note |
 | Audio Card | Copied to `attachments/`, with extension warning |
 | Video Card | Warning that content was lost in export |
+| Bookmark Card | `[Title](url)` markdown link (Znote export only) |
 
 ## Options
 

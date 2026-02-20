@@ -100,15 +100,7 @@ function parseZnote(znotePath, notebookMeta, tempDir) {
     contentHtml = zContentEl.text() || '';
   }
 
-  // Normalize Znote-specific self-closing tags before parsing.
-  // In non-XML mode, cheerio treats unknown self-closing tags (like <znresource/>)
-  // as unclosed — they swallow subsequent siblings as children. Convert to explicit
-  // open+close pairs so cheerio handles them correctly.
-  // The regex respects quoted attribute values (which may contain ">").
-  const selfCloseAttrs = String.raw`(?:[^>"']|"[^"]*"|'[^']*')*`;
-  contentHtml = contentHtml
-    .replace(new RegExp(`<znresource(\\s${selfCloseAttrs})?/>`, 'g'), '<znresource$1></znresource>')
-    .replace(new RegExp(`<checkbox(\\s${selfCloseAttrs})?/>`, 'g'), '<checkbox$1></checkbox>');
+  contentHtml = preprocessZnoteHtml(contentHtml);
 
   // Parse the HTML content with cheerio (non-XML mode for Zoho HTML quirks)
   const $ = cheerio.load(contentHtml, { xmlMode: false });
@@ -183,4 +175,19 @@ function readMetaJson(metaPath) {
     console.warn(`  WARN: Could not parse ${metaPath}: ${err.message}`);
     return null;
   }
+}
+
+/**
+ * Pre-process Znote HTML content before cheerio loading.
+ * Fixes self-closing tags and renames the `checked` attribute to survive
+ * cheerio's boolean attribute normalization in non-XML mode.
+ */
+export function preprocessZnoteHtml(contentHtml) {
+  const selfCloseAttrs = String.raw`(?:[^>"']|"[^"]*"|'[^']*')*`;
+  return contentHtml
+    .replace(new RegExp(`<znresource(\\s${selfCloseAttrs})?/>`, 'g'), '<znresource$1></znresource>')
+    .replace(new RegExp(`<checkbox(\\s${selfCloseAttrs})?/>`, 'g'), '<checkbox$1></checkbox>')
+    // cheerio in xmlMode:false normalizes boolean attrs (checked="true" → checked="checked"),
+    // losing the original value. Rename to data-znote-checked before loading.
+    .replace(/<checkbox(\s)([^>]*)checked="(true|false)"/g, '<checkbox$1$2data-znote-checked="$3"');
 }
