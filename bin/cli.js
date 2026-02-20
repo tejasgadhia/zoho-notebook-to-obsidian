@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import { program } from 'commander';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,10 +10,13 @@ import { convertNote } from '../src/convert.js';
 import { buildNameMap } from '../src/names.js';
 import { writeOutput } from '../src/writer.js';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
+
 program
   .name('zoho-to-obsidian')
   .description('Convert Zoho Notebook exports to Obsidian Markdown')
-  .version('1.0.0')
+  .version(version)
   .argument('<input>', 'Path to Zoho export .zip or extracted folder')
   .argument('<output>', 'Path to output directory (created if needed)')
   .option('--skip-empty', 'Skip notes with no content', false)
@@ -47,9 +51,7 @@ async function run(input, output, options) {
       // Step 4: Build note ID lookup for internal link resolution
       const noteIdToTitle = new Map();
       for (const note of notes) {
-        // Extract note ID from sourceFile (e.g., "gsgjka0eb..." → "gsgjka0eb...")
-        const noteId = note.sourceFile.replace('.html', '');
-        noteIdToTitle.set(noteId, note.title);
+        noteIdToTitle.set(note.noteId, note.title);
       }
 
       // Step 5: Build filename map

@@ -477,7 +477,8 @@ function handleLink(node, $, context, noteIdToTitle) {
     if (text && text.toLowerCase() !== 'link') {
       return `[[${text}]]`;
     }
-    return `<!-- zoho internal link (unresolved): ${href} -->`;
+    const safeHref = href.replace(/-->/g, '--\u200B>');
+    return `<!-- zoho internal link (unresolved): ${safeHref} -->`;
   }
 
   // Local file attachment
@@ -555,6 +556,11 @@ function escapeYaml(text) {
   return text
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
+    .replace(/\x00/g, '')                        // Strip null bytes
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Strip C0 controls
+    .replace(/\u0085/g, '\\n')                    // Next Line → escaped newline
+    .replace(/\u2028/g, '\\n')                    // Line Separator → escaped newline
+    .replace(/\u2029/g, '\\n')                    // Paragraph Separator → escaped newline
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r');
 }

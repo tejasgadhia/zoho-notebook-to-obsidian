@@ -24,8 +24,19 @@
   "engines": {
     "node": ">=18"
   },
+  "scripts": {
+    "test": "echo 'No tests yet' && exit 0"
+  },
   "author": "Tejas Gadhia",
   "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tejasgadhia/zoho-to-obsidian.git"
+  },
+  "homepage": "https://github.com/tejasgadhia/zoho-to-obsidian#readme",
+  "bugs": {
+    "url": "https://github.com/tejasgadhia/zoho-to-obsidian/issues"
+  },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "cheerio": "^1.0.0",

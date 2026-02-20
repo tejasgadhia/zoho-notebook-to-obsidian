@@ -13,8 +13,9 @@ export function parseNote(htmlFilePath) {
   const title = $('title').text().trim() || 'Untitled';
 
   // Parse JSON from data attributes (cheerio auto-decodes HTML entities)
-  const notebookData = parseJsonAttr(body.attr('data-notebook'));
-  const notecardData = parseJsonAttr(body.attr('data-notecard'));
+  const sourceFile = path.basename(htmlFilePath);
+  const notebookData = parseJsonAttr(body.attr('data-notebook'), 'data-notebook', sourceFile);
+  const notecardData = parseJsonAttr(body.attr('data-notecard'), 'data-notecard', sourceFile);
 
   // Get the <content> element — handle double-nested <content><content>
   let $content = $('content').first();
@@ -41,7 +42,8 @@ export function parseNote(htmlFilePath) {
   });
 
   return {
-    sourceFile: path.basename(htmlFilePath),
+    sourceFile,
+    noteId: path.basename(htmlFilePath, '.html'),
     notebook: notebookData?.name || 'Uncategorized',
     title: notecardData?.name || title,
     color: notecardData?.color || null,
@@ -54,11 +56,12 @@ export function parseNote(htmlFilePath) {
   };
 }
 
-function parseJsonAttr(value) {
+function parseJsonAttr(value, attrName, sourceFile) {
   if (!value) return null;
   try {
     return JSON.parse(value);
-  } catch {
+  } catch (err) {
+    console.warn(`  WARN: Could not parse ${attrName} in ${sourceFile}: ${err.message}`);
     return null;
   }
 }

@@ -20,6 +20,7 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
   fs.mkdirSync(attachmentsDir, { recursive: true });
 
   const copiedFiles = new Set();
+  const warnedFiles = new Set();
 
   for (let i = 0; i < notes.length; i++) {
     const note = notes[i];
@@ -45,8 +46,12 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
       stats.videoLost++;
     }
 
-    // Create notebook folder
+    // Create notebook folder (with path traversal guard)
     const folderPath = path.join(outputDir, folder);
+    if (!path.resolve(folderPath).startsWith(path.resolve(outputDir) + path.sep)) {
+      console.warn(`  SKIP: notebook folder "${folder}" would escape output directory`);
+      continue;
+    }
     fs.mkdirSync(folderPath, { recursive: true });
 
     // Write markdown file
@@ -59,16 +64,18 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
 
     // Copy referenced images
     for (const img of note.images) {
-      if (copiedFiles.has(img)) continue;
+      if (copiedFiles.has(img) || warnedFiles.has(img)) continue;
       if (safeCopy(dataDir, img, attachmentsDir, normalizeFilename(img))) {
         copiedFiles.add(img);
         stats.images++;
+      } else {
+        warnedFiles.add(img);
       }
     }
 
     // Copy referenced attachments
     for (const att of note.attachments) {
-      if (copiedFiles.has(att)) continue;
+      if (copiedFiles.has(att) || warnedFiles.has(att)) continue;
       const destName = normalizeFilename(att);
       if (safeCopy(dataDir, att, attachmentsDir, destName)) {
         copiedFiles.add(att);
@@ -78,6 +85,8 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
         } else {
           stats.files++;
         }
+      } else {
+        warnedFiles.add(att);
       }
     }
   }
@@ -109,11 +118,18 @@ function normalizeFilename(filename) {
 function safeCopy(srcBase, filename, destBase, destFilename) {
   const src = path.resolve(srcBase, filename);
   const dest = path.resolve(destBase, destFilename);
-  if (!src.startsWith(path.resolve(srcBase) + path.sep)) return false;
-  if (!dest.startsWith(path.resolve(destBase) + path.sep)) return false;
+  if (!src.startsWith(path.resolve(srcBase) + path.sep)) {
+    console.warn(`  WARN: Skipping file outside source directory: ${filename}`);
+    return false;
+  }
+  if (!dest.startsWith(path.resolve(destBase) + path.sep)) {
+    console.warn(`  WARN: Skipping file outside attachments directory: ${destFilename}`);
+    return false;
+  }
   if (fs.existsSync(src)) {
     fs.copyFileSync(src, dest);
     return true;
   }
+  console.warn(`  WARN: File not found: ${filename}`);
   return false;
 }
