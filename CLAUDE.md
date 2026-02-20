@@ -6,19 +6,20 @@ CLI tool and npm package that converts Zoho Notebook HTML exports into clean Obs
 
 ## Architecture
 
-5-module pipeline:
+6-module pipeline with dual-format support:
 
 ```
-bin/cli.js          Entry point, argument parsing (commander)
-  → src/extract.js  Unzip or locate HTML files in a directory
-  → src/parse-note.js  Parse HTML into NoteData objects (cheerio)
-  → src/convert.js  Recursive HTML→Markdown walker, frontmatter builder
-  → src/names.js    Safe folder/filenames, deduplication
-  → src/writer.js   Write .md files, copy attachments
-  → src/utils.js    Shared normalizeFilename utility
+bin/cli.js             Entry point, argument parsing (commander)
+  → src/extract.js     Unzip, locate data dir, detect format ('html' or 'znote')
+  → src/parse-note.js  HTML format: parse .html into NoteData (cheerio)
+  → src/parse-znote.js Znote format: extract .znote tars, parse XML+CDATA (tar, cheerio)
+  → src/convert.js     Recursive HTML→Markdown walker, frontmatter builder
+  → src/names.js       Safe folder/filenames, deduplication
+  → src/writer.js      Write .md files, copy attachments (per-note dirs for Znote)
+  → src/utils.js       Shared normalizeFilename utility
 ```
 
-Key data flow: `extractInput()` → `parseNote()` per file → `buildNameMap()` → `convertNote()` per note → `writeOutput()`.
+Key data flow: `extractInput()` → auto-detect format → `parseNote()` or `parseZnoteExport()` → both produce `NoteData[]` → `buildNameMap()` → `convertNote()` per note → `writeOutput()`.
 
 ## Commands
 
@@ -32,6 +33,14 @@ npm test
 # Regenerate test snapshots (after changing convert logic)
 npm run test:gen
 ```
+
+## Znote Format Details
+
+- `.znote` files are POSIX tar archives (extracted with `tar` npm package, sync mode)
+- Each tar contains `{noteId}/Note.znel` (XML) + attachment files
+- `Note.znel` has `<ZMeta>` fields and `<ZContent><![CDATA[...html...]]></ZContent>`
+- Notebook metadata in `meta.json` per folder
+- **Cheerio self-closing tag workaround**: `<znresource/>` and `<checkbox/>` must be pre-processed to explicit open+close pairs before `cheerio.load()` in non-XML mode. Without this, cheerio treats them as unclosed tags and swallows subsequent siblings as children. The regex is quote-aware to handle `>` inside attribute values.
 
 ## Security Patterns
 

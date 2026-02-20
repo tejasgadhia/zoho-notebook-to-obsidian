@@ -63,10 +63,13 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
       console.log(`  ${folder}/${filename}`);
     }
 
+    // Source dir for this note's attachments (Znote: per-note dir, HTML: shared dataDir)
+    const srcDir = note.attachmentDir || dataDir;
+
     // Copy referenced images
     for (const img of note.images) {
       if (copiedFiles.has(img) || warnedFiles.has(img)) continue;
-      if (safeCopy(dataDir, img, attachmentsDir, normalizeFilename(img))) {
+      if (safeCopy(srcDir, img, attachmentsDir, normalizeFilename(img))) {
         copiedFiles.add(img);
         stats.images++;
       } else {
@@ -78,7 +81,7 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
     for (const att of note.attachments) {
       if (copiedFiles.has(att) || warnedFiles.has(att)) continue;
       const destName = normalizeFilename(att);
-      if (safeCopy(dataDir, att, attachmentsDir, destName)) {
+      if (safeCopy(srcDir, att, attachmentsDir, destName)) {
         copiedFiles.add(att);
         const ext = path.extname(destName);
         if (!ext) {
@@ -109,6 +112,11 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
   }
 
   console.log(summary);
+
+  // Warn about shared notes limitation (both formats)
+  console.log('\nNote: Zoho Notebook exports do not include notes shared with you by others.');
+  console.log('If you have shared notes, they were not exported and cannot be migrated.');
+
   return stats;
 }
 

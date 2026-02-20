@@ -60,9 +60,10 @@ function convertBody(noteData, noteIdToTitle) {
     return true;
   });
 
-  // Video card: empty content, title suggests video
+  // Video card: empty content, title suggests video OR noteType says video
   if (nonEmptyChildren.length === 0 && $content.text().trim() === '') {
-    const isVideo = VIDEO_EXTENSIONS.some(ext => title.toLowerCase().endsWith(ext));
+    const isVideo = VIDEO_EXTENSIONS.some(ext => title.toLowerCase().endsWith(ext))
+      || noteData.noteType === 'note/video';
     if (isVideo) {
       return `> **Warning**: Video content was not included in Zoho's export. The original file "${title}" could not be recovered.\n`;
     }
@@ -77,6 +78,11 @@ function convertBody(noteData, noteIdToTitle) {
       const cleanSrc = normalizeFilename(src);
       return `![[attachments/${cleanSrc}]]\n`;
     }
+  }
+
+  // Znote resource card: single <znresource> child (image, file, audio, sketch)
+  if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'znresource') {
+    return handleZnresourceCard($(nonEmptyChildren[0]), noteData);
   }
 
   // File card: single <a> child pointing to a local file
@@ -301,6 +307,18 @@ function walkNode(node, $, context, noteIdToTitle) {
     return '';
   }
 
+  // Znote <checkbox> element: text is direct child content
+  if (tag === 'checkbox') {
+    const checked = $el.attr('checked') === 'true';
+    const labelText = walkChildren(node, $, context, noteIdToTitle).trim();
+    return checked ? `- [x] ${labelText}\n` : `- [ ] ${labelText}\n`;
+  }
+
+  // Znote <znresource> element: inline image/file reference
+  if (tag === 'znresource') {
+    return handleZnresource($el);
+  }
+
   // Headings
   if (/^h[1-6]$/.test(tag)) {
     const level = parseInt(tag[1]);
@@ -360,7 +378,10 @@ function handleDiv(node, $, context, noteIdToTitle) {
 
   // Check if div contains checkbox content — pass through without extra paragraph spacing
   const hasCheckbox = children.some(c =>
-    c.type === 'tag' && c.tagName?.toLowerCase() === 'input' && $(c).attr('type') === 'checkbox'
+    c.type === 'tag' && (
+      (c.tagName?.toLowerCase() === 'input' && $(c).attr('type') === 'checkbox') ||
+      c.tagName?.toLowerCase() === 'checkbox'
+    )
   );
   if (hasCheckbox) {
     return walkChildren(node, $, context, noteIdToTitle);
@@ -525,6 +546,58 @@ function handleTable(node, $, context, noteIdToTitle) {
   }
   result += '\n';
   return result;
+}
+
+// --- Znote resource handlers ---
+
+/**
+ * Handle a <znresource> when it's the sole child of <content> (card-level).
+ * Uses noteData.noteType for accurate card identification.
+ */
+function handleZnresourceCard($el, noteData) {
+  const relativePath = $el.attr('relative-path') || '';
+  const type = $el.attr('type') || '';
+  const consumers = $el.attr('consumers') || '';
+  const noteType = noteData?.noteType;
+
+  const cleanPath = normalizeFilename(relativePath);
+
+  // Audio card
+  if (type.startsWith('audio/') || noteType === 'note/audio') {
+    return `Attached audio: ![[attachments/${cleanPath}]]\n\n> **Note**: Audio file exported without extension. You may need to rename it (likely .m4a or .webm).\n`;
+  }
+
+  // File card
+  if (consumers.includes('com.zoho.notebook.file') || noteType === 'note/file') {
+    return `Attached file: ![[attachments/${cleanPath}]]\n`;
+  }
+
+  // Image or sketch card
+  return `![[attachments/${cleanPath}]]\n`;
+}
+
+/**
+ * Handle an inline <znresource> element within note body.
+ */
+function handleZnresource($el) {
+  const relativePath = $el.attr('relative-path') || '';
+  const type = $el.attr('type') || '';
+  const consumers = $el.attr('consumers') || '';
+
+  const cleanPath = normalizeFilename(relativePath);
+
+  // File attachment (inline)
+  if (consumers.includes('com.zoho.notebook.file')) {
+    return `![[attachments/${cleanPath}]]`;
+  }
+
+  // Audio
+  if (type.startsWith('audio/')) {
+    return `![[attachments/${cleanPath}]]`;
+  }
+
+  // Image or sketch (default)
+  return `![[attachments/${cleanPath}]]`;
 }
 
 // --- Helpers ---
