@@ -10,6 +10,7 @@
     "bin/",
     "src/",
     "README.md",
+    "CHANGELOG.md",
     "ZOHO-EXPORT-ISSUES.md",
     "LICENSE"
   ],
@@ -25,7 +26,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "echo 'No tests yet' && exit 0"
+    "test": "node --test test/*.test.js",
+    "test:gen": "node test/gen-snapshots.js"
   },
   "author": "Tejas Gadhia",
   "license": "SEE LICENSE IN LICENSE",

@@ -2,6 +2,8 @@
  * Generate safe filenames and folder names with deduplication.
  */
 
+import { normalizeFilename } from './utils.js';
+
 // Characters illegal on Windows/macOS/Linux filesystems
 const ILLEGAL_CHARS = /[/\\:*?"<>|]/g;
 
@@ -50,10 +52,8 @@ export function buildNameMap(notes) {
   return nameMap;
 }
 
-function toFolderName(notebook) {
-  return notebook
-    .replace(/\u202f/g, ' ')         // Narrow no-break space → regular space
-    .replace(/\u00a0/g, ' ')         // Non-breaking space → regular space
+export function toFolderName(notebook) {
+  return normalizeFilename(notebook)
     .toLowerCase()
     .replace(ILLEGAL_CHARS, '')
     .replace(/\.+/g, '')             // Strip dots (prevents ".." path traversal)
@@ -62,10 +62,8 @@ function toFolderName(notebook) {
     .replace(/^-|-$/g, '') || 'uncategorized';
 }
 
-function sanitizeFilename(title) {
-  let name = title
-    .replace(/\u202f/g, ' ')    // Narrow no-break space → regular space
-    .replace(/\u00a0/g, ' ')    // Non-breaking space → regular space
+export function sanitizeFilename(title) {
+  let name = normalizeFilename(title)
     .replace(/[\x00-\x1F\x7F]/g, '') // Strip all control characters (null, newline, tab, etc.)
     .replace(/[\u0080-\u009F]/g, '') // Strip C1 control characters
     .replace(/[\u2028\u2029]/g, ' ') // Unicode line/paragraph separators → space

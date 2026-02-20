@@ -3,6 +3,7 @@
  */
 
 import path from 'node:path';
+import { normalizeFilename } from './utils.js';
 
 const VIDEO_EXTENSIONS = ['.webm', '.mp4', '.mov', '.avi', '.mkv'];
 
@@ -563,10 +564,6 @@ function escapeYaml(text) {
     .replace(/\u2029/g, '\\n')                    // Paragraph Separator → escaped newline
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r');
-}
-
-function normalizeFilename(filename) {
-  return filename.replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
 
 function normalizeText(text) {

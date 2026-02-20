@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { normalizeFilename } from './utils.js';
 
 /**
  * Write converted notes and copy referenced files to the output directory.
@@ -109,10 +110,6 @@ export function writeOutput(notes, converted, nameMap, dataDir, outputDir, optio
 
   console.log(summary);
   return stats;
-}
-
-function normalizeFilename(filename) {
-  return filename.replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
 
 function safeCopy(srcBase, filename, destBase, destFilename) {
