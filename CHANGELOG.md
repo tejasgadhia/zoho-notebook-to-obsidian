@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-02-21
+
+### Fixed
+
+- **CHANGELOG accuracy**: Corrected v1.1.1 entry to reflect actual changes shipped
+- **CLAUDE.md accuracy**: Updated architecture docs and security pattern descriptions
+- **escapeYaml tab handling**: `\t` characters now escaped in YAML frontmatter values
+- **Comment injection defense**: Improved `-->` sanitization using zero-width space insertion
+- **TAR entry validation**: Additional path validation on `.znote` TAR entries before extraction
+
+### Added
+
+- 10 new security regression tests (video title injection, wikilink injection, C1 control chars, ZIP traversal, etc.)
+- 2 new znote edge case tests (corrupt `.znote` resilience, end-to-end pipeline)
+
+### Changed
+
+- `.gitignore`: Added `*.tgz` and `npm-debug.log*` patterns
+- `zoho-importer-comparison.md`: Corrected feature comparison data
+
 ## [1.1.1] - 2026-02-21
 
 ### Security
@@ -67,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note ID format uses `path.basename` for reliable internal link resolution
 - Version read dynamically from `package.json` (no hardcoded values)
 
+[1.1.2]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/releases/tag/v1.0.0
