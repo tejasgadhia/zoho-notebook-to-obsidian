@@ -39,14 +39,15 @@ export function getText(node) {
  */
 export function findByTag(node, tagName) {
   const results = [];
-  const stack = [...(node.children || [])];
-  while (stack.length > 0) {
-    const current = stack.shift();
+  const queue = [...(node.children || [])];
+  while (queue.length > 0) {
+    const current = queue.shift();
     if (current.type === 'tag' && current.tagName?.toLowerCase() === tagName) {
       results.push(current);
     }
     if (current.children) {
-      stack.unshift(...current.children);
+      // Prepend children to maintain depth-first document order
+      queue.unshift(...current.children);
     }
   }
   return results;

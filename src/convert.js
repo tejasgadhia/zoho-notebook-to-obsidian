@@ -136,7 +136,8 @@ function walkChildren(node, context, noteIdToTitle) {
 
   let result = '';
   const children = node.children || [];
-  const skipSet = context._skipNodes || new Set();
+  // Local to each walkChildren call — intentionally NOT propagated via context
+  const skipSet = new Set();
 
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
