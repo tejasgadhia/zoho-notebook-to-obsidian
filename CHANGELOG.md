@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-21
+
+### Security
+
+- **ZIP path traversal hardening**: Reject ZIP entries containing `..` path segments or null bytes before extraction (prevents writes outside temp directory)
+- **TAR path traversal hardening**: Reject `.znote` TAR entries containing `..` segments before extraction
+- **Symlink rejection**: `safeCopy` now skips symlinks in source directories (prevents symlink-following attacks)
+
+### Fixed
+
+- **`safeCopy` nested paths**: Create intermediate directories for nested destination paths instead of failing silently
+- **Missing `<content>` tag**: `convertNote` gracefully handles notes with no `<content>` element instead of throwing
+
 ## [1.1.0] - 2026-02-20
 
 ### Changed
@@ -54,5 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note ID format uses `path.basename` for reliable internal link resolution
 - Version read dynamically from `package.json` (no hardcoded values)
 
+[1.1.1]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/releases/tag/v1.0.0
