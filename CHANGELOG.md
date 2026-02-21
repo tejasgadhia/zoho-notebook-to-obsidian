@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-20
+
+### Changed
+
+- **Cheerio-free conversion**: `convert.js` now operates on plain htmlparser2 nodes via new `node-helpers.js` utilities (`getAttr`, `getText`, `findByTag`), removing cheerio from the hot path (AR1)
+- **Immutable walk context**: List handlers use object spread (`{ ...context }`) instead of mutating shared state, preventing cross-branch contamination bugs (CQ1)
+- **Card type strategy dispatch**: `CARD_STRATEGIES` array replaces nested if-else chain for cleaner card type detection (video > empty > photo > znresource > file > text) (AR4)
+
+### Added
+
+- `MAX_WALK_DEPTH=100` recursion guard in `walkChildren` prevents stack overflow on pathological input (S7)
+
+### Fixed
+
+- Code review cleanup: removed dead code, improved variable naming, tightened scope of `_skipNodes` set
+
 ## [1.0.0] - 2026-02-20
 
 ### Added
@@ -38,4 +54,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note ID format uses `path.basename` for reliable internal link resolution
 - Version read dynamically from `package.json` (no hardcoded values)
 
+[1.1.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/tejasgadhia/zoho-notebook-to-obsidian/releases/tag/v1.0.0
