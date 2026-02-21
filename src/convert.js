@@ -200,20 +200,14 @@ function walkNode(node, context, noteIdToTitle) {
   // --- Lists ---
 
   if (tag === 'ul' || tag === 'ol') {
-    const prevType = context.listType;
-    const prevDepth = context.listDepth;
-
-    // If nested list directly inside another list (invalid HTML from Zoho)
     const parentTag = node.parent?.tagName?.toLowerCase();
-    if (parentTag === 'ul' || parentTag === 'ol') {
-      context.listDepth += 1;
-    }
-
-    context.listType = tag === 'ul' ? 'ul' : 'ol';
-    const result = walkChildren(node, context, noteIdToTitle);
-
-    context.listType = prevType;
-    context.listDepth = prevDepth;
+    const childContext = {
+      ...context,
+      listType: tag === 'ul' ? 'ul' : 'ol',
+      listDepth: (parentTag === 'ul' || parentTag === 'ol')
+        ? context.listDepth + 1 : context.listDepth,
+    };
+    const result = walkChildren(node, childContext, noteIdToTitle);
 
     // Add trailing newline after top-level list
     if (parentTag !== 'ul' && parentTag !== 'ol' && parentTag !== 'li') {
@@ -437,14 +431,13 @@ function handleListItem(node, context, noteIdToTitle) {
     if (child.type === 'tag') {
       const childTag = child.tagName?.toLowerCase();
       if (childTag === 'ul' || childTag === 'ol') {
-        // Nested list
-        const prevDepth = context.listDepth;
-        context.listDepth += 1;
-        const prevType = context.listType;
-        context.listType = childTag === 'ul' ? 'ul' : 'ol';
-        sublist += walkChildren(child, context, noteIdToTitle);
-        context.listDepth = prevDepth;
-        context.listType = prevType;
+        // Nested list — immutable context (no save/restore needed)
+        const childContext = {
+          ...context,
+          listDepth: context.listDepth + 1,
+          listType: childTag === 'ul' ? 'ul' : 'ol',
+        };
+        sublist += walkChildren(child, childContext, noteIdToTitle);
       } else if (childTag === 'div') {
         // <li><div>text</div></li> — unwrap
         content += walkChildren(child, context, noteIdToTitle).trim();
