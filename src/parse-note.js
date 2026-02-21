@@ -49,8 +49,7 @@ export function parseNote(htmlFilePath) {
     color: notecardData?.color || null,
     createdDate: notecardData?.created_date || notebookData?.created_date || null,
     modifiedDate: notecardData?.modified_date || notebookData?.modified_date || null,
-    $content,
-    $,
+    contentNode: $content[0],
     images,
     attachments,
   };

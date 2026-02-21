@@ -4,6 +4,7 @@
 
 import path from 'node:path';
 import { normalizeFilename } from './utils.js';
+import { getAttr, getText, findByTag } from './node-helpers.js';
 
 const VIDEO_EXTENSIONS = ['.webm', '.mp4', '.mov', '.avi', '.mkv'];
 
@@ -50,18 +51,14 @@ function buildFrontmatter(noteData) {
 }
 
 function convertBody(noteData, noteIdToTitle) {
-  const { $content, $, title } = noteData;
+  const { contentNode, title } = noteData;
 
   // Detect card type from content structure
-  const children = $content.children().toArray();
-  const nonEmptyChildren = children.filter(c => {
-    const tag = c.tagName?.toLowerCase();
-    if (!tag) return false;
-    return true;
-  });
+  const children = contentNode.children || [];
+  const nonEmptyChildren = children.filter(c => c.type === 'tag');
 
   // Video card: empty content, title suggests video OR noteType says video
-  if (nonEmptyChildren.length === 0 && $content.text().trim() === '') {
+  if (nonEmptyChildren.length === 0 && getText(contentNode).trim() === '') {
     const isVideo = VIDEO_EXTENSIONS.some(ext => title.toLowerCase().endsWith(ext))
       || noteData.noteType === 'note/video';
     if (isVideo) {
@@ -73,7 +70,7 @@ function convertBody(noteData, noteIdToTitle) {
 
   // Photo/Sketch card: single <img> child
   if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'img') {
-    const src = $(nonEmptyChildren[0]).attr('src');
+    const src = getAttr(nonEmptyChildren[0], 'src');
     if (src) {
       const cleanSrc = normalizeFilename(src);
       return `![[attachments/${cleanSrc}]]\n`;
@@ -82,12 +79,12 @@ function convertBody(noteData, noteIdToTitle) {
 
   // Znote resource card: single <znresource> child (image, file, audio, sketch)
   if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'znresource') {
-    return handleZnresourceCard($(nonEmptyChildren[0]), noteData);
+    return handleZnresourceCard(nonEmptyChildren[0], noteData);
   }
 
   // File card: single <a> child pointing to a local file
   if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'a') {
-    const href = $(nonEmptyChildren[0]).attr('href');
+    const href = getAttr(nonEmptyChildren[0], 'href');
     if (href && !href.startsWith('http') && !href.startsWith('zohonotebook://')) {
       const cleanHref = normalizeFilename(href);
       // Audio card: file has no extension
@@ -100,7 +97,7 @@ function convertBody(noteData, noteIdToTitle) {
 
   // Standard text/checklist conversion
   const context = { listDepth: 0, listType: null };
-  let result = walkChildren($content[0], $, context, noteIdToTitle);
+  let result = walkChildren(contentNode, context, noteIdToTitle);
 
   // Post-process: collapse 3+ blank lines to max 2
   result = result.replace(/\n{3,}/g, '\n\n');
@@ -111,7 +108,7 @@ function convertBody(noteData, noteIdToTitle) {
   return result;
 }
 
-function walkChildren(node, $, context, noteIdToTitle) {
+function walkChildren(node, context, noteIdToTitle) {
   let result = '';
   const children = node.children || [];
   const skipSet = context._skipNodes || new Set();
@@ -123,7 +120,7 @@ function walkChildren(node, $, context, noteIdToTitle) {
     // Checkbox pattern: <input type="checkbox"><span>text</span>
     // Mark the span as consumed so it's not emitted twice
     if (child.type === 'tag' && child.tagName?.toLowerCase() === 'input') {
-      const inputType = $(child).attr('type');
+      const inputType = getAttr(child, 'type');
       if (inputType === 'checkbox') {
         const nextSib = children[i + 1];
         if (nextSib && nextSib.type === 'tag' && nextSib.tagName?.toLowerCase() === 'span') {
@@ -132,16 +129,16 @@ function walkChildren(node, $, context, noteIdToTitle) {
       }
     }
 
-    result += walkNode(child, $, context, noteIdToTitle);
+    result += walkNode(child, context, noteIdToTitle);
   }
 
   return result;
 }
 
-function walkNode(node, $, context, noteIdToTitle) {
-  // Text node
+function walkNode(node, context, noteIdToTitle) {
+  // Text node — use node.data directly (not getText)
   if (node.type === 'text') {
-    let text = $(node).text();
+    let text = node.data || '';
     // Normalize &nbsp; and \u202f to regular space
     text = text.replace(/\u00a0/g, ' ').replace(/\u202f/g, ' ');
     return text;
@@ -150,7 +147,6 @@ function walkNode(node, $, context, noteIdToTitle) {
   if (node.type !== 'tag') return '';
 
   const tag = node.tagName.toLowerCase();
-  const $el = $(node);
 
   // --- Block elements ---
 
@@ -177,28 +173,28 @@ function walkNode(node, $, context, noteIdToTitle) {
   }
 
   if (tag === 'div') {
-    return handleDiv(node, $, context, noteIdToTitle);
+    return handleDiv(node, context, noteIdToTitle);
   }
 
   if (tag === 'p') {
-    const content = walkChildren(node, $, context, noteIdToTitle).trim();
+    const content = walkChildren(node, context, noteIdToTitle).trim();
     if (!content) return '\n';
     return content + '\n\n';
   }
 
   if (tag === 'blockquote') {
-    const inner = walkChildren(node, $, context, noteIdToTitle).trim();
+    const inner = walkChildren(node, context, noteIdToTitle).trim();
     const quoted = inner.split('\n').map(line => `> ${line}`).join('\n');
     return quoted + '\n\n';
   }
 
   if (tag === 'pre') {
-    const text = $el.text();
+    const text = getText(node);
     return '```\n' + text + '\n```\n\n';
   }
 
   if (tag === 'table') {
-    return handleTable(node, $, context, noteIdToTitle);
+    return handleTable(node, context, noteIdToTitle);
   }
 
   // --- Lists ---
@@ -214,7 +210,7 @@ function walkNode(node, $, context, noteIdToTitle) {
     }
 
     context.listType = tag === 'ul' ? 'ul' : 'ol';
-    const result = walkChildren(node, $, context, noteIdToTitle);
+    const result = walkChildren(node, context, noteIdToTitle);
 
     context.listType = prevType;
     context.listDepth = prevDepth;
@@ -227,57 +223,57 @@ function walkNode(node, $, context, noteIdToTitle) {
   }
 
   if (tag === 'li') {
-    return handleListItem(node, $, context, noteIdToTitle);
+    return handleListItem(node, context, noteIdToTitle);
   }
 
   // --- Inline elements ---
 
   if (tag === 'strong' || tag === 'b') {
-    const inner = walkChildren(node, $, context, noteIdToTitle);
+    const inner = walkChildren(node, context, noteIdToTitle);
     const trimmed = inner.trim();
     if (!trimmed) return inner;
     return `**${trimmed}**`;
   }
 
   if (tag === 'em' || tag === 'i') {
-    const inner = walkChildren(node, $, context, noteIdToTitle);
+    const inner = walkChildren(node, context, noteIdToTitle);
     const trimmed = inner.trim();
     if (!trimmed) return inner;
     return `*${trimmed}*`;
   }
 
   if (tag === 'u') {
-    const inner = walkChildren(node, $, context, noteIdToTitle);
+    const inner = walkChildren(node, context, noteIdToTitle);
     const trimmed = inner.trim();
     if (!trimmed) return inner;
     return `<u>${trimmed}</u>`;
   }
 
   if (tag === 'strike' || tag === 's' || tag === 'del') {
-    const inner = walkChildren(node, $, context, noteIdToTitle);
+    const inner = walkChildren(node, context, noteIdToTitle);
     const trimmed = inner.trim();
     if (!trimmed) return inner;
     return `~~${trimmed}~~`;
   }
 
   if (tag === 'span') {
-    const cls = $el.attr('class') || '';
+    const cls = getAttr(node, 'class') || '';
     if (cls.includes('highlight')) {
-      const inner = walkChildren(node, $, context, noteIdToTitle);
+      const inner = walkChildren(node, context, noteIdToTitle);
       const trimmed = inner.trim();
       if (!trimmed) return inner;
       return `==${trimmed}==`;
     }
     // All other spans: pass through (strip color, etc.)
-    return walkChildren(node, $, context, noteIdToTitle);
+    return walkChildren(node, context, noteIdToTitle);
   }
 
   if (tag === 'a') {
-    return handleLink(node, $, context, noteIdToTitle);
+    return handleLink(node, context, noteIdToTitle);
   }
 
   if (tag === 'img') {
-    const src = $el.attr('src');
+    const src = getAttr(node, 'src');
     if (src) {
       const cleanSrc = normalizeFilename(src);
       if (src.startsWith('http')) {
@@ -289,15 +285,15 @@ function walkNode(node, $, context, noteIdToTitle) {
   }
 
   if (tag === 'input') {
-    const type = $el.attr('type');
+    const type = getAttr(node, 'type');
     if (type === 'checkbox') {
-      const checked = $el.attr('checked') !== undefined;
+      const checked = getAttr(node, 'checked') !== undefined;
       // Get the next sibling <span> for the label text
       const nextSib = node.next;
       let labelText = '';
       if (nextSib) {
         if (nextSib.type === 'tag' && nextSib.tagName?.toLowerCase() === 'span') {
-          labelText = $(nextSib).text().trim();
+          labelText = getText(nextSib).trim();
         } else if (nextSib.type === 'text') {
           labelText = nextSib.data?.trim() || '';
         }
@@ -310,46 +306,45 @@ function walkNode(node, $, context, noteIdToTitle) {
   // Znote <checkbox> element: text is direct child content
   // Uses data-znote-checked (renamed from checked in parse-znote.js to survive cheerio normalization)
   if (tag === 'checkbox') {
-    const checked = $el.attr('data-znote-checked') === 'true';
-    const labelText = walkChildren(node, $, context, noteIdToTitle).trim();
+    const checked = getAttr(node, 'data-znote-checked') === 'true';
+    const labelText = walkChildren(node, context, noteIdToTitle).trim();
     return checked ? `- [x] ${labelText}\n` : `- [ ] ${labelText}\n`;
   }
 
   // Znote <znresource> element: inline image/file reference
   if (tag === 'znresource') {
-    return handleZnresource($el);
+    return handleZnresource(node);
   }
 
   // Headings
   if (/^h[1-6]$/.test(tag)) {
     const level = parseInt(tag[1]);
-    const inner = walkChildren(node, $, context, noteIdToTitle).trim();
+    const inner = walkChildren(node, context, noteIdToTitle).trim();
     return '#'.repeat(level) + ' ' + inner + '\n\n';
   }
 
   // Inline code
   if (tag === 'code') {
-    const inner = walkChildren(node, $, context, noteIdToTitle);
+    const inner = walkChildren(node, context, noteIdToTitle);
     if (!inner.trim()) return inner;
     return '`' + inner + '`';
   }
 
   // <content> tag: just recurse (it's a Zoho wrapper)
   if (tag === 'content') {
-    return walkChildren(node, $, context, noteIdToTitle);
+    return walkChildren(node, context, noteIdToTitle);
   }
 
   // Unknown tag: recurse children to never silently drop content
-  return walkChildren(node, $, context, noteIdToTitle);
+  return walkChildren(node, context, noteIdToTitle);
 }
 
-function handleDiv(node, $, context, noteIdToTitle) {
-  const $el = $(node);
-  const cls = $el.attr('class') || '';
+function handleDiv(node, context, noteIdToTitle) {
+  const cls = getAttr(node, 'class') || '';
 
   // Checklist wrapper: transparent, just recurse
   if (cls.includes('checklist')) {
-    return walkChildren(node, $, context, noteIdToTitle);
+    return walkChildren(node, context, noteIdToTitle);
   }
 
   const children = (node.children || []).filter(c =>
@@ -380,12 +375,12 @@ function handleDiv(node, $, context, noteIdToTitle) {
   // Check if div contains checkbox content — pass through without extra paragraph spacing
   const hasCheckbox = children.some(c =>
     c.type === 'tag' && (
-      (c.tagName?.toLowerCase() === 'input' && $(c).attr('type') === 'checkbox') ||
+      (c.tagName?.toLowerCase() === 'input' && getAttr(c, 'type') === 'checkbox') ||
       c.tagName?.toLowerCase() === 'checkbox'
     )
   );
   if (hasCheckbox) {
-    return walkChildren(node, $, context, noteIdToTitle);
+    return walkChildren(node, context, noteIdToTitle);
   }
 
   // Check if div has block-level children
@@ -395,7 +390,7 @@ function handleDiv(node, $, context, noteIdToTitle) {
 
   if (!hasBlockChildren) {
     // Inline-only div: serialize as paragraph
-    const content = walkChildren(node, $, context, noteIdToTitle).trim();
+    const content = walkChildren(node, context, noteIdToTitle).trim();
     if (!content) return '\n';
     return content + '\n\n';
   }
@@ -417,9 +412,9 @@ function handleDiv(node, $, context, noteIdToTitle) {
           result += pendingInline.trim() + '\n\n';
           pendingInline = '';
         }
-        result += walkNode(child, $, context, noteIdToTitle);
+        result += walkNode(child, context, noteIdToTitle);
       } else {
-        pendingInline += walkNode(child, $, context, noteIdToTitle);
+        pendingInline += walkNode(child, context, noteIdToTitle);
       }
     }
   }
@@ -431,7 +426,7 @@ function handleDiv(node, $, context, noteIdToTitle) {
   return result;
 }
 
-function handleListItem(node, $, context, noteIdToTitle) {
+function handleListItem(node, context, noteIdToTitle) {
   const indent = '    '.repeat(context.listDepth);
   const marker = context.listType === 'ol' ? '1. ' : '- ';
 
@@ -447,14 +442,14 @@ function handleListItem(node, $, context, noteIdToTitle) {
         context.listDepth += 1;
         const prevType = context.listType;
         context.listType = childTag === 'ul' ? 'ul' : 'ol';
-        sublist += walkChildren(child, $, context, noteIdToTitle);
+        sublist += walkChildren(child, context, noteIdToTitle);
         context.listDepth = prevDepth;
         context.listType = prevType;
       } else if (childTag === 'div') {
         // <li><div>text</div></li> — unwrap
-        content += walkChildren(child, $, context, noteIdToTitle).trim();
+        content += walkChildren(child, context, noteIdToTitle).trim();
       } else {
-        content += walkNode(child, $, context, noteIdToTitle);
+        content += walkNode(child, context, noteIdToTitle);
       }
     } else if (child.type === 'text') {
       const text = child.data?.replace(/\u00a0/g, ' ').replace(/\u202f/g, ' ') || '';
@@ -470,11 +465,10 @@ function handleListItem(node, $, context, noteIdToTitle) {
   return result;
 }
 
-function handleLink(node, $, context, noteIdToTitle) {
-  const $el = $(node);
-  const href = $el.attr('href') || '';
-  const cls = $el.attr('class') || '';
-  const text = walkChildren(node, $, context, noteIdToTitle).trim();
+function handleLink(node, context, noteIdToTitle) {
+  const href = getAttr(node, 'href') || '';
+  const cls = getAttr(node, 'class') || '';
+  const text = walkChildren(node, context, noteIdToTitle).trim();
 
   // Internal note link via class
   if (cls.includes('editor-note-link') || cls.includes('rte-link')) {
@@ -517,16 +511,20 @@ function handleLink(node, $, context, noteIdToTitle) {
   return `[${text}](${href})`;
 }
 
-function handleTable(node, $, context, noteIdToTitle) {
+function handleTable(node, context, noteIdToTitle) {
   const rows = [];
-  $(node).find('tr').each((_, tr) => {
+  for (const tr of findByTag(node, 'tr')) {
     const cells = [];
-    $(tr).find('td, th').each((__, cell) => {
-      const text = walkChildren(cell, $, context, noteIdToTitle).trim().replace(/\|/g, '\\|');
+    // Use direct children to preserve td/th document order (won't leak nested table cells)
+    const cellNodes = (tr.children || []).filter(c =>
+      c.type === 'tag' && ['td', 'th'].includes(c.tagName?.toLowerCase())
+    );
+    for (const cell of cellNodes) {
+      const text = walkChildren(cell, context, noteIdToTitle).trim().replace(/\|/g, '\\|');
       cells.push(text);
-    });
+    }
     rows.push(cells);
-  });
+  }
 
   if (rows.length === 0) return '';
 
@@ -555,10 +553,10 @@ function handleTable(node, $, context, noteIdToTitle) {
  * Handle a <znresource> when it's the sole child of <content> (card-level).
  * Uses noteData.noteType for accurate card identification.
  */
-function handleZnresourceCard($el, noteData) {
-  const relativePath = $el.attr('relative-path') || '';
-  const type = $el.attr('type') || '';
-  const consumers = $el.attr('consumers') || '';
+function handleZnresourceCard(node, noteData) {
+  const relativePath = getAttr(node, 'relative-path') || '';
+  const type = getAttr(node, 'type') || '';
+  const consumers = getAttr(node, 'consumers') || '';
   const noteType = noteData?.noteType;
 
   const cleanPath = normalizeFilename(relativePath);
@@ -580,10 +578,10 @@ function handleZnresourceCard($el, noteData) {
 /**
  * Handle an inline <znresource> element within note body.
  */
-function handleZnresource($el) {
-  const relativePath = $el.attr('relative-path') || '';
-  const type = $el.attr('type') || '';
-  const consumers = $el.attr('consumers') || '';
+function handleZnresource(node) {
+  const relativePath = getAttr(node, 'relative-path') || '';
+  const type = getAttr(node, 'type') || '';
+  const consumers = getAttr(node, 'consumers') || '';
 
   const cleanPath = normalizeFilename(relativePath);
 
@@ -643,4 +641,3 @@ function escapeYaml(text) {
 function normalizeText(text) {
   return text.replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
-
