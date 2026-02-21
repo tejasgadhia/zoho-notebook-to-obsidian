@@ -51,62 +51,80 @@ function buildFrontmatter(noteData) {
   return lines.join('\n');
 }
 
-function convertBody(noteData, noteIdToTitle) {
-  const { contentNode, title } = noteData;
+// --- Card type strategies (order matters: video before empty) ---
 
-  // Detect card type from content structure
-  const children = contentNode.children || [];
-  const nonEmptyChildren = children.filter(c => c.type === 'tag');
-
-  // Video card: empty content, title suggests video OR noteType says video
-  if (nonEmptyChildren.length === 0 && getText(contentNode).trim() === '') {
-    const isVideo = VIDEO_EXTENSIONS.some(ext => title.toLowerCase().endsWith(ext))
-      || noteData.noteType === 'note/video';
-    if (isVideo) {
-      return `> **Warning**: Video content was not included in Zoho's export. The original file "${title}" could not be recovered.\n`;
-    }
-    // Truly empty note
-    return '';
-  }
-
-  // Photo/Sketch card: single <img> child
-  if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'img') {
-    const src = getAttr(nonEmptyChildren[0], 'src');
-    if (src) {
-      const cleanSrc = normalizeFilename(src);
+const CARD_STRATEGIES = [
+  {
+    name: 'video',
+    matches: (children, noteData) =>
+      children.length === 0
+      && getText(noteData.contentNode).trim() === ''
+      && (VIDEO_EXTENSIONS.some(ext => noteData.title.toLowerCase().endsWith(ext))
+        || noteData.noteType === 'note/video'),
+    convert: (children, noteData) =>
+      `> **Warning**: Video content was not included in Zoho's export. The original file "${noteData.title}" could not be recovered.\n`,
+  },
+  {
+    name: 'empty',
+    matches: (children, noteData) =>
+      children.length === 0 && getText(noteData.contentNode).trim() === '',
+    convert: () => '',
+  },
+  {
+    name: 'photo',
+    matches: (children) =>
+      children.length === 1 && children[0].tagName?.toLowerCase() === 'img'
+      && getAttr(children[0], 'src'),
+    convert: (children) => {
+      const cleanSrc = normalizeFilename(getAttr(children[0], 'src'));
       return `![[attachments/${cleanSrc}]]\n`;
-    }
-  }
-
-  // Znote resource card: single <znresource> child (image, file, audio, sketch)
-  if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'znresource') {
-    return handleZnresourceCard(nonEmptyChildren[0], noteData);
-  }
-
-  // File card: single <a> child pointing to a local file
-  if (nonEmptyChildren.length === 1 && nonEmptyChildren[0].tagName?.toLowerCase() === 'a') {
-    const href = getAttr(nonEmptyChildren[0], 'href');
-    if (href && !href.startsWith('http') && !href.startsWith('zohonotebook://')) {
+    },
+  },
+  {
+    name: 'znresource',
+    matches: (children) =>
+      children.length === 1 && children[0].tagName?.toLowerCase() === 'znresource',
+    convert: (children, noteData) =>
+      handleZnresourceCard(children[0], noteData),
+  },
+  {
+    name: 'file',
+    matches: (children) => {
+      if (children.length !== 1 || children[0].tagName?.toLowerCase() !== 'a') return false;
+      const href = getAttr(children[0], 'href');
+      return href && !href.startsWith('http') && !href.startsWith('zohonotebook://');
+    },
+    convert: (children) => {
+      const href = getAttr(children[0], 'href');
       const cleanHref = normalizeFilename(href);
-      // Audio card: file has no extension
       if (!path.extname(cleanHref)) {
         return `Attached audio: ![[attachments/${cleanHref}]]\n\n> **Note**: Audio file exported without extension. You may need to rename it (likely .m4a or .webm).\n`;
       }
       return `Attached file: ![[attachments/${cleanHref}]]\n`;
+    },
+  },
+  {
+    name: 'text',
+    matches: () => true, // catch-all
+    convert: (children, noteData, noteIdToTitle) => {
+      const context = { listDepth: 0, listType: null };
+      let result = walkChildren(noteData.contentNode, context, noteIdToTitle);
+      result = result.replace(/\n{3,}/g, '\n\n');
+      result = result.trimEnd() + '\n';
+      return result;
+    },
+  },
+];
+
+function convertBody(noteData, noteIdToTitle) {
+  const children = (noteData.contentNode.children || []).filter(c => c.type === 'tag');
+
+  for (const strategy of CARD_STRATEGIES) {
+    if (strategy.matches(children, noteData)) {
+      return strategy.convert(children, noteData, noteIdToTitle);
     }
   }
-
-  // Standard text/checklist conversion
-  const context = { listDepth: 0, listType: null };
-  let result = walkChildren(contentNode, context, noteIdToTitle);
-
-  // Post-process: collapse 3+ blank lines to max 2
-  result = result.replace(/\n{3,}/g, '\n\n');
-
-  // Trim trailing whitespace
-  result = result.trimEnd() + '\n';
-
-  return result;
+  return '';
 }
 
 function walkChildren(node, context, noteIdToTitle) {
