@@ -30,7 +30,7 @@ export function extractInput(inputPath) {
 
 function extractZip(zipPath) {
   const zip = new AdmZip(zipPath);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoho-to-obsidian-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoho-notebook-to-obsidian-'));
 
   const cleanup = () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
