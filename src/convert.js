@@ -7,6 +7,7 @@ import { normalizeFilename } from './utils.js';
 import { getAttr, getText, findByTag } from './node-helpers.js';
 
 const VIDEO_EXTENSIONS = ['.webm', '.mp4', '.mov', '.avi', '.mkv'];
+const MAX_WALK_DEPTH = 100;
 
 /**
  * Convert a parsed note to markdown.
@@ -109,6 +110,12 @@ function convertBody(noteData, noteIdToTitle) {
 }
 
 function walkChildren(node, context, noteIdToTitle) {
+  const depth = (context._depth || 0) + 1;
+  if (depth > MAX_WALK_DEPTH) {
+    return getText(node);
+  }
+  context = { ...context, _depth: depth };
+
   let result = '';
   const children = node.children || [];
   const skipSet = context._skipNodes || new Set();
