@@ -131,7 +131,20 @@ function safeCopy(srcBase, filename, destBase, destFilename) {
     console.warn(`  WARN: Skipping file outside attachments directory: ${destFilename}`);
     return false;
   }
+  // Reject symlinks: path.resolve doesn't follow them, but copyFileSync does
+  try {
+    if (fs.lstatSync(src).isSymbolicLink()) {
+      console.warn(`  WARN: Skipping symlink: ${filename}`);
+      return false;
+    }
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      console.warn(`  WARN: Could not stat ${filename}: ${err.code}`);
+      return false;
+    }
+  }
   if (fs.existsSync(src)) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(src, dest);
     return true;
   }

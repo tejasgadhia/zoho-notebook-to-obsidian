@@ -37,6 +37,16 @@ function extractZip(zipPath) {
   };
 
   try {
+    const resolvedTemp = path.resolve(tempDir);
+    for (const entry of zip.getEntries()) {
+      if (entry.entryName.includes('\x00')) {
+        throw new Error(`ZIP entry name contains null byte`);
+      }
+      const entryPath = path.resolve(tempDir, entry.entryName);
+      if (!entryPath.startsWith(resolvedTemp + path.sep) && entryPath !== resolvedTemp) {
+        throw new Error(`ZIP entry "${entry.entryName}" would extract outside temp directory`);
+      }
+    }
     zip.extractAllTo(tempDir, true);
     const dataDir = findDataDir(tempDir);
     const format = detectFormat(dataDir);

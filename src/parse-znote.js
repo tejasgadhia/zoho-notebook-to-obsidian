@@ -4,6 +4,8 @@ import os from 'node:os';
 import * as cheerio from 'cheerio';
 import { extract } from 'tar';
 
+const BLOCKED_TAR_TYPES = new Set(['SymbolicLink', 'Link', 'CharacterDevice', 'BlockDevice', 'FIFO']);
+
 /**
  * Parse an entire Znote-format export directory.
  * Returns { notes: NoteData[], cleanup } where cleanup removes extracted tar temp dirs.
@@ -67,6 +69,13 @@ function parseZnote(znotePath, notebookMeta, tempDir) {
     file: znotePath,
     cwd: extractDir,
     sync: true,
+    filter: (_p, entry) => {
+      if (BLOCKED_TAR_TYPES.has(entry.type)) {
+        console.warn(`  WARN: Skipping ${entry.type} in ${znoteFilename}: ${entry.path}`);
+        return false;
+      }
+      return true;
+    },
   });
 
   // Find Note.znel inside the extracted tar

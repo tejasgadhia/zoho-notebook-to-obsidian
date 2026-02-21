@@ -117,6 +117,7 @@ const CARD_STRATEGIES = [
 ];
 
 function convertBody(noteData, noteIdToTitle) {
+  if (!noteData.contentNode) return '';
   const children = (noteData.contentNode.children || []).filter(c => c.type === 'tag');
 
   for (const strategy of CARD_STRATEGIES) {
