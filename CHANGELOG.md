@@ -22,13 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Cheerio-free conversion**: `convert.js` now operates on plain htmlparser2 nodes via new `node-helpers.js` utilities (`getAttr`, `getText`, `findByTag`), removing cheerio from the hot path (AR1)
-- **Immutable walk context**: List handlers use object spread (`{ ...context }`) instead of mutating shared state, preventing cross-branch contamination bugs (CQ1)
-- **Card type strategy dispatch**: `CARD_STRATEGIES` array replaces nested if-else chain for cleaner card type detection (video > empty > photo > znresource > file > text) (AR4)
+- **Cheerio-free conversion**: `convert.js` now operates on plain htmlparser2 nodes via new `node-helpers.js` utilities (`getAttr`, `getText`, `findByTag`), removing cheerio from the hot path
+- **Immutable walk context**: List handlers use object spread (`{ ...context }`) instead of mutating shared state, preventing cross-branch contamination bugs
+- **Card type strategy dispatch**: `CARD_STRATEGIES` array replaces nested if-else chain for cleaner card type detection (video > empty > photo > znresource > file > text)
 
 ### Added
 
-- `MAX_WALK_DEPTH=100` recursion guard in `walkChildren` prevents stack overflow on pathological input (S7)
+- `MAX_WALK_DEPTH=100` recursion guard in `walkChildren` prevents stack overflow on pathological input
 
 ### Fixed
 
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CLI tool: `npx zoho-notebook-to-obsidian <input> <output>` with `--skip-empty` and `--verbose` flags
-- Support for all 8 Zoho Notebook card types: text, checklist, photo, sketch, file, audio, video, internal link
+- Support for all 8 Zoho Notebook card types: text, checklist, photo, sketch, file, audio, video, bookmark
 - Recursive HTML-to-Markdown conversion handling nested divs, lists, formatting, tables, code blocks, blockquotes, and headings
 - YAML frontmatter with title, notebook, created/modified dates, tags, aliases, and source
 - Internal link resolution (`zohonotebook://` protocol to `[[wikilinks]]`)

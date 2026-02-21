@@ -11,7 +11,7 @@ When migrating between them, Obsidian's built-in [Importer plugin](https://help.
 The same Zoho Notebook HTML export (31 notes across 6 notebooks, all 8 card types) was imported through both paths:
 
 - **Obsidian Importer**: Community plugin, "HTML files" import mode (Obsidian v1.11.7)
-- **zoho-notebook-to-obsidian**: v1.0.0, run as `npx zoho-notebook-to-obsidian export.zip ./vault`
+- **zoho-notebook-to-obsidian**: v1.1.1, run as `npx zoho-notebook-to-obsidian export.zip ./vault`
 
 ## Results at a Glance
 

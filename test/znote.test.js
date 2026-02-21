@@ -149,7 +149,61 @@ describe('Znote bookmark card', () => {
   });
 });
 
-// --- Section 4: parseZnoteExport end-to-end ---
+// --- Section 4: Corrupt znote resilience ---
+
+describe('corrupt znote resilience (#8)', () => {
+  let tempDir;
+  let exportDir;
+
+  before(async () => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'znote-corrupt-'));
+    exportDir = path.join(tempDir, 'export');
+
+    const notebookDir = path.join(exportDir, 'TestNotebook');
+    fs.mkdirSync(notebookDir, { recursive: true });
+
+    fs.writeFileSync(path.join(notebookDir, 'meta.json'), JSON.stringify({
+      data_type: 'NOTEBOOK',
+      name: 'Test Notebook',
+      notebook_id: 'nb-corrupt',
+    }));
+
+    // Valid .znote
+    const znelXml = `<?xml version="1.0" encoding="UTF-8"?>
+<ZNote>
+  <ZMeta><ZTitle>Good Note</ZTitle><ZCreatedDate>2024-01-01T00:00:00+0000</ZCreatedDate><ZModifiedDate>2024-01-01T00:00:00+0000</ZModifiedDate><ZNoteColor>#FFF</ZNoteColor><ZNoteType>note/text</ZNoteType></ZMeta>
+  <ZContent><![CDATA[<content><div>Hello</div></content>]]></ZContent>
+</ZNote>`;
+
+    const noteDir = path.join(tempDir, 'tar-staging', 'validnote');
+    fs.mkdirSync(noteDir, { recursive: true });
+    fs.writeFileSync(path.join(noteDir, 'Note.znel'), znelXml);
+
+    await tarCreate(
+      { file: path.join(notebookDir, 'validnote.znote'), cwd: path.join(tempDir, 'tar-staging') },
+      ['validnote']
+    );
+
+    // Corrupt .znote (invalid tar — just garbage bytes)
+    fs.writeFileSync(path.join(notebookDir, 'corrupt.znote'), 'not-a-tar-file');
+  });
+
+  after(() => {
+    if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('returns valid note and skips corrupt one without throwing', () => {
+    const { notes, cleanup } = parseZnoteExport(exportDir);
+    try {
+      assert.equal(notes.length, 1, `Expected 1 note, got ${notes.length}`);
+      assert.equal(notes[0].title, 'Good Note');
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+// --- Section 5: parseZnoteExport end-to-end ---
 
 describe('parseZnoteExport end-to-end', () => {
   let tempDir;

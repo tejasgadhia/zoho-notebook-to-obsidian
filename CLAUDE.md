@@ -2,7 +2,7 @@
 
 ## What This Is
 
-**zoho-notebook-to-obsidian** — CLI tool and npm package that converts Zoho Notebook HTML exports into clean Obsidian Markdown. Handles all 8 Zoho card types (text, checklist, photo, sketch, file, audio, video, internal link). Validated against a real 31-note, 6-notebook export.
+**zoho-notebook-to-obsidian** — CLI tool and npm package that converts Zoho Notebook HTML exports into clean Obsidian Markdown. Handles all 8 Zoho card types (text, checklist, photo, sketch, file, audio, video, bookmark). Validated against a real 31-note, 6-notebook export.
 
 ## Architecture
 
@@ -70,6 +70,6 @@ test/
 ## Personal Data Safety
 
 - **NEVER** commit `test-output-real/` or any real Zoho export data to this repo
-- **NEVER** reference content from `~/DEV/obsidian/zoho-notebook-obsidian/` in code or tests
+- **NEVER** reference content from your real Zoho export or personal vault in code or tests
 - The `test/fixtures/` directory contains only synthetic HTML — no personal data
 - `.gitignore` excludes `test-output-*/` directories

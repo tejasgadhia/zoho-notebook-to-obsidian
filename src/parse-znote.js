@@ -37,8 +37,13 @@ export function parseZnoteExport(dataDir) {
         .map(f => path.join(notebookDir, f));
 
       for (const znotePath of znoteFiles) {
-        const note = parseZnote(znotePath, meta, tempDir);
-        if (note) notes.push(note);
+        try {
+          const note = parseZnote(znotePath, meta, tempDir);
+          if (note) notes.push(note);
+        } catch (err) {
+          console.warn(`  WARN: Failed to parse ${path.basename(znotePath)}: ${err.message}`);
+          continue;
+        }
       }
     }
 

@@ -4,11 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
+import * as cheerio from 'cheerio';
 import { parseNote } from '../src/parse-note.js';
 import { convertNote } from '../src/convert.js';
 import { writeOutput } from '../src/writer.js';
 import { extractInput } from '../src/extract.js';
 import { toFolderName, sanitizeFilename } from '../src/names.js';
+import { preprocessZnoteHtml } from '../src/parse-znote.js';
 
 const securityDir = path.join(import.meta.dirname, 'fixtures', 'security');
 
@@ -265,5 +267,82 @@ describe('ZIP path traversal hardening', () => {
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+});
+
+// --- Helper: build a synthetic NoteData from HTML (same as znote.test.js) ---
+
+function syntheticNote(contentHtml, overrides = {}) {
+  const html = preprocessZnoteHtml(contentHtml);
+  const $ = cheerio.load(html, { xmlMode: false });
+  let $content = $('content').first();
+  if ($content.length === 0) $content = $.root();
+  return {
+    sourceFile: 'test.html',
+    noteId: 'sec-test',
+    notebook: overrides.notebook || 'Test',
+    title: overrides.title || 'Test',
+    color: null,
+    createdDate: null,
+    modifiedDate: null,
+    noteType: overrides.noteType || null,
+    contentNode: $content[0],
+    images: [],
+    attachments: [],
+  };
+}
+
+describe('video card title injection (#5)', () => {
+  it('title with newline does not produce raw newline in blockquote', () => {
+    const note = syntheticNote('<content></content>', {
+      title: 'Evil\nVideo.webm',
+      noteType: 'note/video',
+    });
+    const { body } = convertNote(note);
+    assert.ok(!body.includes('Evil\nVideo'), `Body contains raw newline: ${JSON.stringify(body)}`);
+    assert.ok(body.includes('Evil Video.webm'), `Title not sanitized: ${body}`);
+  });
+
+  it('title with backtick does not break blockquote formatting', () => {
+    const note = syntheticNote('<content></content>', {
+      title: 'Video`inject`.webm',
+      noteType: 'note/video',
+    });
+    const { body } = convertNote(note);
+    assert.ok(!body.includes('`inject`'), `Body contains unescaped backticks: ${body}`);
+    assert.ok(body.includes('\\`inject\\`'), `Backticks not escaped: ${body}`);
+  });
+});
+
+describe('wikilink injection prevention (#6)', () => {
+  it('link text with ]] does not break wikilink', () => {
+    const note = syntheticNote(
+      '<content><div><a class="editor-note-link" href="#">Evil]]text</a></div></content>'
+    );
+    const { body } = convertNote(note);
+    assert.ok(!body.includes(']]text'), `Wikilink broken by ]]: ${body}`);
+    assert.ok(body.includes('[[Eviltext]]'), `Expected sanitized wikilink: ${body}`);
+  });
+
+  it('target title with | does not corrupt alias', () => {
+    const noteIdToTitle = new Map([['abc123', 'Title|Pipe']]);
+    const note = syntheticNote(
+      '<content><div><a href="zohonotebook://notes/abc123">Custom text</a></div></content>'
+    );
+    const { body } = convertNote(note, noteIdToTitle);
+    assert.ok(!body.includes('|Pipe|'), `Pipe not sanitized: ${body}`);
+    assert.ok(body.includes('[[TitlePipe|Custom text]]'), `Expected sanitized alias: ${body}`);
+  });
+});
+
+describe('YAML injection prevention — C1 control chars (#9)', () => {
+  it('title with C1 control chars produces clean frontmatter', () => {
+    const note = syntheticNote('<content><div>Hello</div></content>', {
+      title: 'Title\x81with\x9Fchars',
+    });
+    const { markdown } = convertNote(note);
+    assert.ok(!markdown.includes('\x81'), `Markdown contains \\x81: ${JSON.stringify(markdown)}`);
+    assert.ok(!markdown.includes('\x9F'), `Markdown contains \\x9F: ${JSON.stringify(markdown)}`);
+    assert.ok(markdown.includes('title: "Titlewithchars"'), `Title not cleaned: ${markdown}`);
   });
 });

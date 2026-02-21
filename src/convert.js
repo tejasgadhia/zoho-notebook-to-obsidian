@@ -61,8 +61,10 @@ const CARD_STRATEGIES = [
       && getText(noteData.contentNode).trim() === ''
       && (VIDEO_EXTENSIONS.some(ext => noteData.title.toLowerCase().endsWith(ext))
         || noteData.noteType === 'note/video'),
-    convert: (children, noteData) =>
-      `> **Warning**: Video content was not included in Zoho's export. The original file "${noteData.title}" could not be recovered.\n`,
+    convert: (children, noteData) => {
+      const safeTitle = noteData.title.replace(/\n/g, ' ').replace(/`/g, '\\`');
+      return `> **Warning**: Video content was not included in Zoho's export. The original file "${safeTitle}" could not be recovered.\n`;
+    },
   },
   {
     name: 'empty',
@@ -485,6 +487,10 @@ function handleListItem(node, context, noteIdToTitle) {
   return result;
 }
 
+function sanitizeWikilink(str) {
+  return str.replace(/\]\]/g, '').replace(/\[\[/g, '').replace(/\|/g, '');
+}
+
 function handleLink(node, context, noteIdToTitle) {
   const href = getAttr(node, 'href') || '';
   const cls = getAttr(node, 'class') || '';
@@ -492,7 +498,7 @@ function handleLink(node, context, noteIdToTitle) {
 
   // Internal note link via class
   if (cls.includes('editor-note-link') || cls.includes('rte-link')) {
-    if (text) return `[[${text}]]`;
+    if (text) return `[[${sanitizeWikilink(text)}]]`;
   }
 
   // Zoho internal protocol link
@@ -505,14 +511,14 @@ function handleLink(node, context, noteIdToTitle) {
       if (targetTitle) {
         // If link text is auto-generated "link", use target title
         if (text.toLowerCase() === 'link') {
-          return `[[${targetTitle}]]`;
+          return `[[${sanitizeWikilink(targetTitle)}]]`;
         }
-        return `[[${targetTitle}|${text}]]`;
+        return `[[${sanitizeWikilink(targetTitle)}|${sanitizeWikilink(text)}]]`;
       }
     }
     // Fallback: use link text as wikilink if it's meaningful
     if (text && text.toLowerCase() !== 'link') {
-      return `[[${text}]]`;
+      return `[[${sanitizeWikilink(text)}]]`;
     }
     const safeHref = href.replace(/-->/g, '--\u200B>');
     return `<!-- zoho internal link (unresolved): ${safeHref} -->`;
@@ -629,7 +635,10 @@ function formatDate(isoString) {
   if (!isoString) return null;
   try {
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return null;
+    if (isNaN(date.getTime())) {
+      console.warn(`  WARN: Invalid date value "${isoString}", skipping`);
+      return null;
+    }
     return date.toISOString().split('T')[0];
   } catch {
     return null;
@@ -651,6 +660,7 @@ function escapeYaml(text) {
     .replace(/"/g, '\\"')
     .replace(/\x00/g, '')                        // Strip null bytes
     .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Strip C0 controls
+    .replace(/[\x80-\x84\x86-\x9F]/g, '')             // Strip C1 controls (skip \x85, handled below)
     .replace(/\u0085/g, '\\n')                    // Next Line → escaped newline
     .replace(/\u2028/g, '\\n')                    // Line Separator → escaped newline
     .replace(/\u2029/g, '\\n')                    // Paragraph Separator → escaped newline
