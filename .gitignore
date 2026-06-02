@@ -12,3 +12,6 @@ _planning/
 .DS_Store
 project-learnings/
 codex_review/
+
+# Personal agent config — never commit
+CLAUDE.local.md
